@@ -1,0 +1,53 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+  packages: "write"
+
+jobs:
+  check-copywrite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+      - name: Setup Copywrite
+        uses: hashicorp/setup-copywrite@3ace06ad72e6ec679ea8572457b17dbc3960b8ce # v1.0.0
+
+      - name: Check Header Compliance
+        run: copywrite headers
+
+      - name: Ensure the code has been properly regenerated with 'make regen'
+        run: |
+          make regen
+          readonly changed_files="$(git diff --stat)"
+          if [[ "${changed_files}" != "" ]]; then
+              echo "Found differences in copywrite headers after running 'copywrite headers'"
+              echo "Please run 'copywrite headers' & commit the changed files:"
+              echo "${changed_files}"
+              exit 1
+          fi
+
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          fetch-depth: 0
+      - run: git fetch --force --tags
+
+      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version: 1.21
+
+      - uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
