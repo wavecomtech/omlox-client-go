@@ -346,7 +346,6 @@ func (c *Client) handleMessage(ctx context.Context, msg *wrapperObject) {
 
 // handleError handles any websocket error sent by the server.
 func (c *Client) handleError(ctx context.Context, msg *wrapperObject) {
-	fmt.Printf("got error[%d]: %v\n", msg.WebsocketError.Code, msg.WebsocketError.Description)
 	switch msg.WebsocketError.Code {
 	case ErrCodeSubscription, ErrCodeNotAuthorized, ErrCodeUnknownTopic, ErrCodeInvalid:
 		// pop pending subscription and kill it
