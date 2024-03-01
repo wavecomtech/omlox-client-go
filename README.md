@@ -50,7 +50,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/wavecomtech/omlox-client-go/omlox"
+	"github.com/wavecomtech/omlox-client-go"
 )
 
 func main() {
