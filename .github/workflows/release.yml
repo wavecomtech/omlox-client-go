@@ -10,26 +10,30 @@ permissions:
   packages: "write"
 
 jobs:
-  check-copywrite:
+  check-code-regeneration:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
-      - name: Setup Copywrite
-        uses: hashicorp/setup-copywrite@3ace06ad72e6ec679ea8572457b17dbc3960b8ce # v1.0.0
-
-      - name: Check Header Compliance
-        run: copywrite headers
-
-      - name: Ensure the code has been properly regenerated with 'make regen'
+      - name: Set up go
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version: 1.21
+      
+      - name: Install gen dependencies
         run: |
-          make regen
+          go install github.com/mailru/easyjson/...@latest
+          go install github.com/hashicorp/copywrite@latest
+
+      - name: Ensure the code has been properly regenerated with 'go generate ./...'
+        run: |
+          go generate ./...
           readonly changed_files="$(git diff --stat)"
           if [[ "${changed_files}" != "" ]]; then
-              echo "Found differences in copywrite headers after running 'copywrite headers'"
-              echo "Please run 'copywrite headers' & commit the changed files:"
-              echo "${changed_files}"
-              exit 1
+          echo "Found differences after running 'go generate ./...'"
+          echo "Please run 'go generate ./...' & commit the changed files:"
+          echo "${changed_files}"
+          exit 1
           fi
 
   goreleaser:

@@ -6,19 +6,40 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      ...
+    }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
-        buildDeps = with pkgs; [ git go_1_21 gnumake ];
-        devDeps = with pkgs;
-          buildDeps ++ [
+        overlay = import ./nix/pkgs;
+
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ overlay ];
+        };
+
+        buildDeps = with pkgs; [
+          git
+          go_1_21
+          gnumake
+        ];
+
+        devDeps =
+          with pkgs;
+          buildDeps
+          ++ [
             easyjson
             goreleaser
+            copywrite
           ];
       in
-      { devShell = pkgs.mkShell { buildInputs = devDeps; }; }
+      {
+        devShell = pkgs.mkShell { buildInputs = devDeps; };
+      }
     );
-
 }

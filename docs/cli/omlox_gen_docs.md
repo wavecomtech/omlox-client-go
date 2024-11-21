@@ -9,7 +9,7 @@ omlox gen docs [flags]
 ### Options
 
 ```
-      --format string   Docs format. One of: [rest markdown yaml]. (default "markdown")
+      --format string   Docs format. One of: [markdown yaml rest]. (default "markdown")
   -h, --help            help for docs
   -o, --output string   Output directory. (default ".")
 ```
@@ -17,7 +17,7 @@ omlox gen docs [flags]
 ### Options inherited from parent commands
 
 ```
-      --addr string   omlox hub API endpoint (default "https://staging-whereis.local.wavesys.pt/api/omlox/v2")
+      --addr string   omlox hub API endpoint (default "localhost:8081")
       --debug         enable debug logging
 ```
 
