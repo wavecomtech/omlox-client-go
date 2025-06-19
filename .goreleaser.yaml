@@ -1,11 +1,13 @@
-project_name: omloxctl
+version: 2
+
+project_name: omlox-cli
 
 git:
   tag_sort: "-version:creatordate"
   prerelease_suffix: "-"
 
 builds:
-  - main: ./cmd/omlox
+  - main: ./cmd/omlox-cli
     env:
       - CGO_ENABLED=0
     goos:
@@ -20,7 +22,7 @@ builds:
       - -trimpath
     ldflags: 
       - "-s -w"
-      - "-X main.version={{.Version}} -X main.commitHash={{.Commit}} -X main.buildDate={{.Date}}"
+      - "-X main.version={{.Version}} -X main.commitHash={{.Commit}}"
 
 archives:
   - format: tar.gz

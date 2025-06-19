@@ -26,5 +26,5 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 
 // getVersion returns a string version information.
 func getVersion() string {
-	return fmt.Sprintf("%s version %s (%s) built on %s\n", appName, version, commitHash, buildDate)
+	return fmt.Sprintf("%s version %s (%s)\n", appName, version, commitHash)
 }

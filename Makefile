@@ -1,11 +1,8 @@
 VERSION ?= $(shell git describe --tags --exact-match 2>/dev/null || git symbolic-ref -q --short HEAD)
 COMMIT_HASH ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 
-DATE_FMT = +%FT%TZ # ISO 8601
-BUILD_DATE ?= $(shell date "$(DATE_FMT)") # "-u" for UTC time (zero offset)
-
 BUILD_DIR ?= bin
-LDFLAGS += "-X main.version=$(VERSION) -X main.commitHash=$(COMMIT_HASH) -X main.buildDate=$(BUILD_DATE)"
+LDFLAGS += "-X main.version=$(VERSION) -X main.commitHash=$(COMMIT_HASH)
 
 .DEFAULT_GOAL: help
 default: help

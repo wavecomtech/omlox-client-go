@@ -12,7 +12,6 @@ import (
 var (
 	version    string
 	commitHash string
-	buildDate  string
 )
 
 const (
