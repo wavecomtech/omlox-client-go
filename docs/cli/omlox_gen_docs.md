@@ -9,7 +9,7 @@ omlox gen docs [flags]
 ### Options
 
 ```
-      --format string   Docs format. One of: [markdown yaml rest]. (default "markdown")
+      --format string   Docs format. One of: [markdown rest yaml]. (default "markdown")
   -h, --help            help for docs
   -o, --output string   Output directory. (default ".")
 ```

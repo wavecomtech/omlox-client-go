@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"sort"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
@@ -29,6 +30,7 @@ func newGenDocsCmd() *cobra.Command {
 		for fmt := range formats {
 			fmts = append(fmts, fmt)
 		}
+		sort.Strings(fmts)
 		return fmts
 	}
 
