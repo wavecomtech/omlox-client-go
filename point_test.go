@@ -44,7 +44,7 @@ func TestPointUnmarshal(t *testing.T) {
 		}
 
 		if diff := cmp.Diff(tc.point, &point); diff != "" {
-			t.Errorf("Polygon() mismatch (-want +got):\n%s", diff)
+			t.Errorf("Point() mismatch (-want +got):\n%s", diff)
 		}
 	}
 }
