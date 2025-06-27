@@ -6,6 +6,9 @@ bin/
 # Direnv
 /.direnv/
 
+# Nix
+result
+
 # Completion debug files
 completion.txt
 

@@ -3,43 +3,61 @@
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs =
     {
       self,
       nixpkgs,
-      flake-utils,
       ...
     }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        overlay = import ./nix/pkgs;
+    let
+      supportedSystems = [
+        "aarch64-linux"
+        "aarch64-darwin"
+        "x86_64-darwin"
+        "x86_64-linux"
+      ];
 
-        pkgs = import nixpkgs {
+      forAllSystems = f: nixpkgs.lib.genAttrs supportedSystems (system: f system);
+      nixpkgsFor = forAllSystems (
+        system:
+        import nixpkgs {
           inherit system;
-          overlays = [ overlay ];
+          overlays = [ self.overlays.default ];
+        }
+      );
+
+      version = self.shortRev or self.dirtyShortRev;
+      commitHash = self.rev or self.dirtyRev;
+    in
+    {
+      overlays.default = final: _: {
+        omlox-cli = final.callPackage ./package.nix {
+          inherit version commitHash;
         };
+      };
 
-        buildDeps = with pkgs; [
-          git
-          go_1_21
-          gnumake
-        ];
+      formatter = forAllSystems (system: (nixpkgsFor.${system}).nixfmt-tree);
 
-        devDeps =
-          with pkgs;
-          buildDeps
-          ++ [
-            easyjson
-            goreleaser
-            copywrite
-          ];
-      in
-      {
-        devShell = pkgs.mkShell { buildInputs = devDeps; };
-      }
-    );
+      packages = forAllSystems (system: {
+        default = (nixpkgsFor.${system}).omlox-cli;
+        omlox-cli = (nixpkgsFor.${system}).omlox-cli;
+      });
+
+      devShells = forAllSystems (
+        system: with nixpkgsFor.${system}; {
+          default = mkShell {
+            inputsFrom = [ omlox-cli ];
+            packages = [
+              git
+              gnumake
+              easyjson
+              goreleaser
+              copywrite
+            ];
+          };
+        }
+      );
+    };
 }
