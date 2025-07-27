@@ -2,7 +2,7 @@ VERSION ?= $(shell git describe --tags --exact-match 2>/dev/null || git symbolic
 COMMIT_HASH ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 
 BUILD_DIR ?= bin
-LDFLAGS += "-X main.version=$(VERSION) -X main.commitHash=$(COMMIT_HASH)
+LDFLAGS += "-X main.version=$(VERSION) -X main.commitHash=$(COMMIT_HASH)"
 
 .DEFAULT_GOAL: help
 default: help
