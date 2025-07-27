@@ -9,11 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/url"
 	"time"
 
-	"golang.org/x/exp/slog"
 	"golang.org/x/sync/errgroup"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
@@ -453,7 +453,7 @@ func upgradeToWebsocketScheme(u *url.URL) error {
 func (w wrapperObject) LogValue() slog.Value {
 	if w.Event == EventError {
 		return slog.GroupValue(
-			slog.Group("error", w.WebsocketError),
+			slog.Any("error", w.WebsocketError),
 		)
 	}
 	return w.WrapperObject.LogValue()
