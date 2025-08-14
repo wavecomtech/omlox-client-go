@@ -6,8 +6,7 @@ package omlox
 import (
 	"encoding/json"
 	"errors"
-
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 // WrapperObject is the wrapper object of websockets data exchanged between client and server.
