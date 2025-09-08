@@ -109,6 +109,21 @@ func (c *TrackablesAPI) Delete(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+// Update updates a trackable.
+func (c *TrackablesAPI) Update(ctx context.Context, trackable Trackable, id uuid.UUID) (*Trackable, error) {
+	requestPath := "/trackables/" + id.String()
+
+	return sendStructuredRequestParseResponse[Trackable](
+		ctx,
+		c.client,
+		http.MethodPut,
+		requestPath,
+		trackable,
+		nil, // request query parameters
+		nil, // request headers
+	)
+}
+
 // GetLocation gets the last most recent location for a trackable.
 // It considers all recent location updates of the trackables location providers.
 func (c *TrackablesAPI) GetLocation(ctx context.Context, id uuid.UUID) (*Location, error) {
