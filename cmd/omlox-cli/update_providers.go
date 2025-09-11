@@ -60,12 +60,12 @@ func newUpdateProvidersCmd(settings cli.EnvSettings, out io.Writer) *cobra.Comma
 			}
 
 			for _, p := range loader.Resources {
-				rt, err := c.Providers.Update(context.Background(), p, p.ID)
+				err := c.Providers.Update(context.Background(), p, p.ID)
 				if err != nil {
 					return err
 				}
 
-				fmt.Fprintf(out, "updated: %v %v\n", rt.ID, rt.Name)
+				fmt.Fprintf(out, "updated: %v %v\n", p.ID, p.Name)
 			}
 
 			return nil

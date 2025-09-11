@@ -59,12 +59,12 @@ func newUpdateTrackablesCmd(settings cli.EnvSettings, out io.Writer) *cobra.Comm
 			}
 
 			for _, t := range loader.Resources {
-				rt, err := c.Trackables.Update(context.Background(), t, t.ID)
+				err := c.Trackables.Update(context.Background(), t, t.ID)
 				if err != nil {
 					return err
 				}
 
-				fmt.Fprintf(out, "updated: %v %v\n", rt.ID, rt.Name)
+				fmt.Fprintf(out, "updated: %v %v\n", t.ID, t.Name)
 			}
 
 			return nil
