@@ -91,10 +91,10 @@ func (c *ProvidersAPI) Get(ctx context.Context, id string) (*LocationProvider, e
 }
 
 // Update updates a location provider.
-func (c *ProvidersAPI) Update(ctx context.Context, provider LocationProvider, id string) (*LocationProvider, error) {
+func (c *ProvidersAPI) Update(ctx context.Context, provider LocationProvider, id string) error {
 	requestPath := "/providers/" + id
 
-	return sendStructuredRequestParseResponse[LocationProvider](
+	_, err := sendStructuredRequestParseResponse[struct{}](
 		ctx,
 		c.client,
 		http.MethodPut,
@@ -103,6 +103,8 @@ func (c *ProvidersAPI) Update(ctx context.Context, provider LocationProvider, id
 		nil, // request query parameters
 		nil, // request headers
 	)
+
+	return err
 }
 
 // Delete deletes a location provider.
