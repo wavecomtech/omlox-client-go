@@ -113,7 +113,7 @@ func (c *TrackablesAPI) Delete(ctx context.Context, id uuid.UUID) error {
 func (c *TrackablesAPI) Update(ctx context.Context, trackable Trackable, id uuid.UUID) error {
 	requestPath := "/trackables/" + id.String()
 
-	_, err := sendStructuredRequestParseResponse[Trackable](
+	_, err := sendStructuredRequestParseResponse[struct{}](
 		ctx,
 		c.client,
 		http.MethodPut,
