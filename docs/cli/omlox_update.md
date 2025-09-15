@@ -18,5 +18,6 @@ Update hub resources
 ### SEE ALSO
 
 * [omlox](omlox.md)	 - The Omlox Hub CLI tool
+* [omlox update providers](omlox_update_providers.md)	 - Update location providers in the Hub
 * [omlox update trackables](omlox_update_trackables.md)	 - Update trackables in the Hub
 
