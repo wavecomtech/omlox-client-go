@@ -203,7 +203,7 @@ Following is the current checklist of the implemented schemas and API methods.
 | POST   | `/providers`                       |     ✅      |
 | DELETE | `/providers`                       |     ✅      |
 | GET    | `/providers/:providerID`           |     ✅      |
-| PUT    | `/providers/:providerID`           |             |
+| PUT    | `/providers/:providerID`           |     ✅      |
 | DELETE | `/providers/:providerID`           |     ✅      |
 | PUT    | `/providers/:providerID/location`  |             |
 | GET    | `/providers/:providerID/location`  |             |
