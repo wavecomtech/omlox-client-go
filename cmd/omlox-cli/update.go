@@ -19,6 +19,7 @@ func newUpdateCmd(settings cli.EnvSettings, out io.Writer) *cobra.Command {
 
 	cmd.AddCommand(newUpdateTrackablesCmd(settings, out))
 	cmd.AddCommand(newUpdateProvidersCmd(settings, out))
+	cmd.AddCommand(newUpdateProvidersLocationsCmd(settings, out))
 
 	return cmd
 }
