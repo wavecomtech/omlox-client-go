@@ -123,3 +123,20 @@ func (c *ProvidersAPI) Delete(ctx context.Context, id string) error {
 
 	return err
 }
+
+// UpdateLocation updates the location of a location provider.
+func (c *ProvidersAPI) UpdateLocation(ctx context.Context, location Location, id string) error {
+	requestPath := "/providers/" + id + "/location"
+
+	_, err := sendStructuredRequestParseResponse[struct{}](
+		ctx,
+		c.client,
+		http.MethodPut,
+		requestPath,
+		location,
+		nil, // request query parameters
+		nil, // request headers
+	)
+
+	return err
+}

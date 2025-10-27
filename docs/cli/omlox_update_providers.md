@@ -1,11 +1,11 @@
 ## omlox update providers
 
-Update location providers in the Hub
+Update location providers locations in the Hub
 
 ### Synopsis
 
 
-This command updates location providers in the Omlox Hub.
+This command updates location providers locations in the Omlox Hub.
 
 
 ```
@@ -15,7 +15,7 @@ omlox update providers [flags]
 ### Options
 
 ```
-  -f, --file stringArray   The files that contain the location providers to update
+  -f, --file stringArray   The files that contain the location providers locations to update
   -h, --help               help for providers
 ```
 
