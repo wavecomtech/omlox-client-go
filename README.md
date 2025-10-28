@@ -187,7 +187,7 @@ Following is the current checklist of the implemented schemas and API methods.
 | DELETE | `/trackables`                        |     ✅      |
 | GET    | `/trackables/:trackableID`           |     ✅      |
 | DELETE | `/trackables/:trackableID`           |     ✅      |
-| PUT    | `/trackables/:trackableID`           |             |
+| PUT    | `/trackables/:trackableID`           |     ✅      |
 | GET    | `/trackables/:trackableID/fences`    |             |
 | GET    | `/trackables/:trackableID/location`  |     ✅      |
 | GET    | `/trackables/:trackableID/locations` |             |
@@ -203,9 +203,9 @@ Following is the current checklist of the implemented schemas and API methods.
 | POST   | `/providers`                       |     ✅      |
 | DELETE | `/providers`                       |     ✅      |
 | GET    | `/providers/:providerID`           |     ✅      |
-| PUT    | `/providers/:providerID`           |             |
+| PUT    | `/providers/:providerID`           |     ✅      |
 | DELETE | `/providers/:providerID`           |     ✅      |
-| PUT    | `/providers/:providerID/location`  |             |
+| PUT    | `/providers/:providerID/location`  |     ✅      |
 | GET    | `/providers/:providerID/location`  |             |
 | DELETE | `/providers/:providerID/location`  |             |
 | GET    | `/providers/:providerID/fences`    |             |

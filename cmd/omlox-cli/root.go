@@ -22,6 +22,7 @@ Common actions for omlox client:
 - omlox sub location_updates
 - omlox get trackables -o json > backup.trackables.json
 - omlox create trackables < backup.trackables.json
+- omlox update trackables < backup.trackables.json
 
 Environment variables:
 
@@ -53,6 +54,7 @@ func newRootCmd(out io.Writer, args []string) (*cobra.Command, error) {
 		newVersionCmd(out),
 		newGetCmd(*settings, out),
 		newCreateCmd(*settings, out),
+		newUpdateCmd(*settings, out),
 		newDeleteCmd(*settings, out),
 		newSubCmd(*settings, out),
 		newGenCmd(),

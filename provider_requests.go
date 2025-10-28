@@ -75,7 +75,7 @@ func (c *ProvidersAPI) DeleteAll(ctx context.Context) error {
 	return err
 }
 
-// Get gets a location providers.
+// Get gets a location provider.
 func (c *ProvidersAPI) Get(ctx context.Context, id string) (*LocationProvider, error) {
 	requestPath := "/providers/" + id
 
@@ -90,6 +90,23 @@ func (c *ProvidersAPI) Get(ctx context.Context, id string) (*LocationProvider, e
 	)
 }
 
+// Update updates a location provider.
+func (c *ProvidersAPI) Update(ctx context.Context, provider LocationProvider, id string) error {
+	requestPath := "/providers/" + id
+
+	_, err := sendStructuredRequestParseResponse[struct{}](
+		ctx,
+		c.client,
+		http.MethodPut,
+		requestPath,
+		provider,
+		nil, // request query parameters
+		nil, // request headers
+	)
+
+	return err
+}
+
 // Delete deletes a location provider.
 func (c *ProvidersAPI) Delete(ctx context.Context, id string) error {
 	requestPath := "/providers/" + id
@@ -100,6 +117,23 @@ func (c *ProvidersAPI) Delete(ctx context.Context, id string) error {
 		http.MethodDelete,
 		requestPath,
 		nil, // request body
+		nil, // request query parameters
+		nil, // request headers
+	)
+
+	return err
+}
+
+// UpdateLocation updates the location of a location provider.
+func (c *ProvidersAPI) UpdateLocation(ctx context.Context, location Location, id string) error {
+	requestPath := "/providers/" + id + "/location"
+
+	_, err := sendStructuredRequestParseResponse[struct{}](
+		ctx,
+		c.client,
+		http.MethodPut,
+		requestPath,
+		location,
 		nil, // request query parameters
 		nil, // request headers
 	)
