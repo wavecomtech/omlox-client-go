@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"sync"
 
-	"golang.org/x/sync/errgroup"
 	"nhooyr.io/websocket"
 )
 
@@ -33,12 +32,17 @@ type Client struct {
 
 	// websockets client fields
 
-	errg   *errgroup.Group
-	cancel context.CancelFunc
+	lifecycleWg sync.WaitGroup
+	cancel      context.CancelFunc
 
 	// websockets connection
 	conn   *websocket.Conn
 	closed bool
+
+	// reconnection support
+	reconnectCtx    context.Context
+	reconnectCancel context.CancelFunc
+	reconnecting    bool
 
 	// subscriptions
 	subs map[int]*Subcription
