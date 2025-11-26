@@ -33,8 +33,8 @@ type Client struct {
 
 	// websockets client fields
 
-	errg   *errgroup.Group
-	cancel context.CancelFunc
+	lifecycleWg sync.WaitGroup
+	cancel      context.CancelFunc
 
 	// websockets connection
 	conn   *websocket.Conn

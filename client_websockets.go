@@ -14,7 +14,6 @@ import (
 	"net/url"
 	"time"
 
-	"golang.org/x/sync/errgroup"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )
@@ -85,7 +84,6 @@ func (c *Client) Connect(ctx context.Context) error {
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
-	errg, ctx := errgroup.WithContext(ctx)
 
 	conn, _, err := websocket.Dial(ctx, wsURL.String(), &websocket.DialOptions{
 		HTTPClient: c.client,
@@ -107,17 +105,23 @@ func (c *Client) Connect(ctx context.Context) error {
 	c.mu.Lock()
 	c.conn = conn
 	c.closed = false
-	c.errg = errg
 	c.cancel = cancel
+	c.lifecycleWg.Add(2)
 	c.mu.Unlock()
 
-	c.errg.Go(func() error {
-		return c.readLoop(ctx)
-	})
+	go func() {
+		defer c.lifecycleWg.Done()
+		if err := c.readLoop(ctx); err != nil {
+			return
+		}
+	}()
 
-	c.errg.Go(func() error {
-		return c.pingLoop(ctx)
-	})
+	go func() {
+		defer c.lifecycleWg.Done()
+		if err := c.pingLoop(ctx); err != nil {
+			return
+		}
+	}()
 
 	return nil
 }
@@ -426,7 +430,9 @@ func (c *Client) Close() error {
 	// close the client context
 	c.cancel()
 
-	return c.errg.Wait()
+	c.lifecycleWg.Wait()
+
+	return nil
 }
 
 // isClosed reports if the client closed.
