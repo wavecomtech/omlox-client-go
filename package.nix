@@ -1,7 +1,7 @@
 {
   lib,
   buildGoModule,
-  version ? 0.0.0,
+  version ? "0.0.0",
   commitHash ? "unknown",
 }:
 
