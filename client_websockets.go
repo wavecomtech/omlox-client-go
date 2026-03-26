@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"net/url"
@@ -188,13 +187,26 @@ func (c *Client) connect(ctx context.Context) error {
 
 // handleConnectionLoss handles unexpected connection failures and triggers reconnection.
 // This is called by readLoop or pingLoop when they detect a connection error.
+//
+// Reconnection is performed asynchronously in a new goroutine so that the
+// calling goroutine (readLoop/pingLoop) can return and release its WaitGroup
+// slot. The reconnection goroutine waits for both old goroutines to exit
+// before dialing a new connection.
 func (c *Client) handleConnectionLoss(err error) {
-	c.mu.RLock()
-	reconnectCtx := c.reconnectCtx
+	c.mu.Lock()
+
+	// Prevent multiple concurrent reconnection attempts. Both readLoop and
+	// pingLoop may detect the failure and call this method.
+	if c.reconnecting {
+		c.mu.Unlock()
+		return
+	}
+
 	autoReconnect := c.configuration.WSAutoReconnect
-	c.mu.RUnlock()
+	reconnectCtx := c.reconnectCtx
 
 	if !autoReconnect {
+		c.mu.Unlock()
 		slog.LogAttrs(
 			context.Background(),
 			slog.LevelWarn,
@@ -206,8 +218,13 @@ func (c *Client) handleConnectionLoss(err error) {
 
 	// client is shutting down, do not attempt reconnect
 	if reconnectCtx.Err() != nil {
+		c.mu.Unlock()
 		return
 	}
+
+	c.reconnecting = true
+	cancel := c.cancel
+	c.mu.Unlock()
 
 	slog.LogAttrs(
 		context.Background(),
@@ -216,33 +233,50 @@ func (c *Client) handleConnectionLoss(err error) {
 		slog.Any("error", err),
 	)
 
-	c.mu.Lock()
-	c.reconnecting = true
-	c.mu.Unlock()
+	// Cancel the old connection context so the other goroutine
+	// (readLoop or pingLoop) stops and releases its WaitGroup slot.
+	if cancel != nil {
+		cancel()
+	}
 
-	// attempt to reconnect with backoff
-	if err := c.reconnect(reconnectCtx); err != nil {
-		slog.LogAttrs(
-			context.Background(),
-			slog.LevelError,
-			"reconnection failed",
-			slog.Any("error", err),
-		)
+	// Reconnect asynchronously so the calling goroutine can return and
+	// call lifecycleWg.Done(). The reconnection goroutine waits for both
+	// old goroutines to exit before dialing a new connection.
+	go func() {
+		// Wait for old readLoop/pingLoop goroutines to finish.
+		c.lifecycleWg.Wait()
+
+		// Drain any stale pending subscription that was in-flight
+		// when the connection was lost.
+		c.drainPending()
+
+		// Verify the client wasn't closed while we were waiting.
+		if reconnectCtx.Err() != nil {
+			c.mu.Lock()
+			c.reconnecting = false
+			c.mu.Unlock()
+			return
+		}
+
+		if err := c.reconnect(reconnectCtx); err != nil {
+			slog.LogAttrs(
+				context.Background(),
+				slog.LevelError,
+				"reconnection failed",
+				slog.Any("error", err),
+			)
+		} else {
+			slog.LogAttrs(
+				context.Background(),
+				slog.LevelInfo,
+				"successfully reconnected",
+			)
+		}
+
 		c.mu.Lock()
 		c.reconnecting = false
 		c.mu.Unlock()
-		return
-	}
-
-	c.mu.Lock()
-	c.reconnecting = false
-	c.mu.Unlock()
-
-	slog.LogAttrs(
-		context.Background(),
-		slog.LevelInfo,
-		"successfully reconnected",
-	)
+	}()
 }
 
 // Publish a message to the Omlox Hub.
@@ -372,24 +406,22 @@ func (c *Client) pingLoop(ctx context.Context, conn *websocket.Conn) error {
 		case <-t.C:
 		}
 
-		ctx, cancel := context.WithTimeout(ctx, pongWait)
-		defer cancel()
-
+		// Use a dedicated variable to avoid shadowing the parent ctx.
+		// Shadowing would cause each iteration to derive from the previous
+		// timeout context, compounding the deadline until pings fail.
+		pingCtx, cancel := context.WithTimeout(ctx, pongWait)
 		begin := time.Now()
-		err := conn.Ping(ctx)
+		err := conn.Ping(pingCtx)
+		cancel() // release immediately instead of deferring in a loop
 
 		if err != nil {
-			// context was exceded and the client should close
+			// Intentional shutdown — do not reconnect.
 			if errors.Is(err, context.Canceled) {
 				return nil
 			}
 
-			if errors.Is(err, context.DeadlineExceeded) { // TODO @dvcorreia: redundant?
-				// ping could not be done, context exceded and connecting will be closed
-				// reconnect or close the client
-				return err
-			}
-
+			// Ping failed (deadline exceeded, connection error, etc.) —
+			// return error to trigger reconnection.
 			return err
 		}
 
@@ -413,27 +445,24 @@ func (c *Client) readLoop(ctx context.Context, conn *websocket.Conn) error {
 		msgType, r, err := conn.Reader(ctx)
 
 		if err != nil {
+			// Intentional shutdown via context cancellation — do not reconnect.
 			if errors.Is(err, context.Canceled) {
 				return nil
 			}
 
-			// when received StatusNormalClosure or StatusGoingAway close frame will be translated to io.EOF when reading
-			// the TCP connection can also return it, which is passed down from the lib to here
-			if errors.Is(err, io.EOF) {
+			// Check for clean WebSocket close frames before other error types.
+			// StatusNormalClosure is an intentional close — do not reconnect.
+			// StatusGoingAway means the server is shutting down (e.g. restart) — reconnect.
+			switch websocket.CloseStatus(err) {
+			case websocket.StatusNormalClosure:
 				return nil
+			case websocket.StatusGoingAway:
+				return err
 			}
 
-			// when the connection is closed, due to something (e.g. ping deadline, etc)
-			var e net.Error
-			if errors.As(err, &e) {
-				return nil
-			}
-
-			switch s := websocket.CloseStatus(err); s {
-			case websocket.StatusGoingAway, websocket.StatusNormalClosure:
-				return nil
-			}
-
+			// All other errors (io.EOF from dropped TCP connections, net.Error
+			// from timeouts/resets, unexpected close codes) indicate the
+			// connection was lost and should trigger reconnection.
 			return err
 		}
 
@@ -642,6 +671,22 @@ func (c *Client) routeMessage(ctx context.Context, msg *WrapperObject) {
 	}
 }
 
+// drainPending clears any stale pending subscription from the channel,
+// notifying the waiter about the closed connection.
+func (c *Client) drainPending() {
+	select {
+	case stale := <-c.pending:
+		select {
+		case stale <- struct {
+			sid int
+			err error
+		}{err: net.ErrClosed}:
+		default:
+		}
+	default:
+	}
+}
+
 // clearSubs closes resources of subscriptions.
 func (c *Client) clearSubs() {
 	c.mu.Lock()
@@ -652,19 +697,25 @@ func (c *Client) clearSubs() {
 		delete(c.subs, sid)
 	}
 
-	// close any pending subscription
+	// Drain any pending subscription and reinitialize the channel.
+	// We reinitialize rather than closing to prevent send-on-closed-channel
+	// panics if a reconnection goroutine races with Close().
 	select {
-	case pending := <-c.pending:
-		pending <- struct {
+	case stale := <-c.pending:
+		select {
+		case stale <- struct {
 			sid int
 			err error
-		}{
-			err: net.ErrClosed,
+		}{err: net.ErrClosed}:
+		default:
 		}
 	default:
 	}
 
-	close(c.pending)
+	c.pending = make(chan chan struct {
+		sid int
+		err error
+	}, 1)
 }
 
 // Close releases any resources held by the client,
@@ -683,9 +734,6 @@ func (c *Client) Close() error {
 			return err
 		}
 	}
-
-	// close the client context
-	c.cancel()
 
 	// cancel context to stop goroutines
 	if c.cancel != nil {
