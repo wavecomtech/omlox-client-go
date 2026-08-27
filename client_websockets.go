@@ -319,23 +319,17 @@ func (c *Client) Subscribe(ctx context.Context, topic Topic, params ...Parameter
 		}
 	}
 
-	// perform the subscription handshake
-	sid, err := c.subscribe(ctx, topic, parameters)
-	if err != nil {
-		return nil, err
-	}
-
 	sub := &Subcription{
-		sid:    sid, // BUG: deephub doesn't return the sid in subsequent messages (NEEDS FIX!)
 		topic:  topic,
 		params: parameters,
 		mch:    make(chan *WrapperObject, receiveChanSize),
 	}
 
-	// promote a pending subcription
-	c.mu.Lock()
-	c.subs[sub.sid] = sub
-	c.mu.Unlock()
+	// perform the subscription handshake. the subscription is registered by
+	// the confirmation handler, which also assigns its id.
+	if err := c.subscribe(ctx, sub); err != nil {
+		return nil, err
+	}
 
 	return sub, nil
 }
@@ -346,25 +340,25 @@ func (c *Client) Subscribe(ctx context.Context, topic Topic, params ...Parameter
 // There can only be one pending subscription at each time.
 // Subsequent subscriptions will wait while the pending one is waiting for an ID from the server.
 // Since each subscription on a topic can have a distinct parameters, we must synchronisly wait to match each one to its ID.
-func (c *Client) subscribe(ctx context.Context, topic Topic, params Parameters) (int, error) {
-	// channel to await subscription confirmation
-	await := make(chan struct {
-		sid int
-		err error
-	})
+func (c *Client) subscribe(ctx context.Context, sub *Subcription) error {
+	pending := pendingSubscription{
+		sub: sub,
+		// channel to await subscription confirmation
+		await: make(chan subscribeResult),
+	}
 
 	select {
 	case <-ctx.Done():
-		return 0, ctx.Err()
+		return ctx.Err()
 	// lock for pending subscription confirmation.
 	// the pending will be freed by the subribed message handler.
-	case c.pending <- await:
+	case c.pending <- pending:
 	}
 
 	wrObj := &WrapperObject{
 		Event:   EventSubscribe,
-		Topic:   topic,
-		Params:  params,
+		Topic:   sub.topic,
+		Params:  sub.params,
 		Payload: nil,
 	}
 
@@ -373,25 +367,18 @@ func (c *Client) subscribe(ctx context.Context, topic Topic, params Parameters) 
 		case <-c.pending:
 		default:
 		}
-		return 0, err
+		return err
 	}
 
 	// wait for subcription ID
-	var r struct {
-		sid int
-		err error
-	}
+	var r subscribeResult
 	select {
 	case <-ctx.Done():
-		return 0, ctx.Err()
-	case r = <-await:
+		return ctx.Err()
+	case r = <-pending.await:
 	}
 
-	if r.err != nil {
-		return 0, r.err
-	}
-
-	return 0, nil // BUG: deephub doesn't return the sid in subsequent messages (NEEDS FIX!)
+	return r.err
 }
 
 // ping pong loop that manages the websocket connection health.
@@ -565,35 +552,28 @@ func (c *Client) restoreSubscriptions(ctx context.Context) error {
 	c.mu.Unlock()
 
 	for _, sub := range subsToRestore {
-		newSid, err := c.subscribe(ctx, sub.topic, sub.params)
-		if err != nil {
+		oldSid := sub.sid
+
+		// the same subscription object is re-registered under its new sid by
+		// the confirmation handler, so the user keeps reading the same channel
+		if err := c.subscribe(ctx, sub); err != nil {
 			slog.LogAttrs(
 				ctx,
 				slog.LevelError,
 				"failed to restore subscription",
-				slog.Int("old sid", sub.sid),
+				slog.Int("old sid", oldSid),
 				slog.String("topic", string(sub.topic)),
 				slog.Any("error", err),
 			)
 			continue
 		}
 
-		// update the existing subscription object with the new sid
-		// the user keeps reading from the same channel
-		oldSid := sub.sid
-		sub.sid = newSid
-
-		// re-register in the subscriptions with the new sid
-		c.mu.Lock()
-		c.subs[newSid] = sub
-		c.mu.Unlock()
-
 		slog.LogAttrs(
 			ctx,
 			slog.LevelDebug,
 			"subscription restored",
 			slog.Int("old sid", oldSid),
-			slog.Int("new sid", newSid),
+			slog.Int("new sid", sub.sid),
 			slog.String("topic", string(sub.topic)),
 		)
 	}
@@ -607,15 +587,19 @@ func (c *Client) handleMessage(ctx context.Context, msg *wrapperObject) {
 	case EventError:
 		c.handleError(ctx, msg)
 	case EventSubscribed:
-		// pop pending subscription and assign subscription ID
+		// pop pending subscription, assign its subscription ID and register it.
+		//
+		// registering here, on the goroutine reading the connection, is what
+		// guarantees the subscription is routable before the next frame is
+		// handled — hubs start pushing as soon as they confirm.
 		select {
-		case pendingc := <-c.pending:
-			chsend(ctx, pendingc, struct {
-				sid int
-				err error
-			}{
-				sid: msg.SubscriptionID,
-			})
+		case pending := <-c.pending:
+			c.mu.Lock()
+			pending.sub.sid = msg.SubscriptionID
+			c.subs[msg.SubscriptionID] = pending.sub
+			c.mu.Unlock()
+
+			chsend(ctx, pending.await, subscribeResult{sid: msg.SubscriptionID})
 		default:
 			slog.Warn("received subscription confirmation but no pending subscription found")
 		}
@@ -632,13 +616,8 @@ func (c *Client) handleError(ctx context.Context, msg *wrapperObject) {
 	switch msg.WebsocketError.Code {
 	case ErrCodeSubscription, ErrCodeNotAuthorized, ErrCodeUnknownTopic, ErrCodeInvalid:
 		// pop pending subscription and kill it
-		pendingc := <-c.pending
-		chsend(ctx, pendingc, struct {
-			sid int
-			err error
-		}{
-			err: msg.WebsocketError,
-		})
+		pending := <-c.pending
+		chsend(ctx, pending.await, subscribeResult{err: msg.WebsocketError})
 		return
 	case ErrCodeUnknown: // TODO @dvcorreia: handle error
 	case ErrCodeUnsubscription: // TODO @dvcorreia: handle error
@@ -647,28 +626,62 @@ func (c *Client) handleError(ctx context.Context, msg *wrapperObject) {
 
 // routeMessage sends the message to the its respective subscription.
 func (c *Client) routeMessage(ctx context.Context, msg *WrapperObject) {
-	// retrive subcription if exists
-	c.mu.RLock()
-	sub := c.subs[msg.SubscriptionID]
-	c.mu.RUnlock()
+	subs := c.resolveSubscriptions(msg)
 
-	if sub == nil {
-		// TODO @dvcorreia: handle unknown subscription IDs
-		return
-	}
-
-	select {
-	case <-ctx.Done():
-		return
-	case sub.mch <- msg: // TODO @dvcorreia: this will block other messages
-	case <-time.After(chanSendTimeout):
+	if len(subs) == 0 {
 		slog.LogAttrs(
 			context.Background(),
 			slog.LevelWarn,
-			"timeout sending to subscription channel",
+			"dropping message with no matching subscription",
 			slog.Any("event", msg),
 		)
+		return
 	}
+
+	for _, sub := range subs {
+		select {
+		case <-ctx.Done():
+			return
+		case sub.mch <- msg: // TODO @dvcorreia: this will block other messages
+		case <-time.After(chanSendTimeout):
+			slog.LogAttrs(
+				context.Background(),
+				slog.LevelWarn,
+				"timeout sending to subscription channel",
+				slog.Any("event", msg),
+			)
+		}
+	}
+}
+
+// resolveSubscriptions finds the subscriptions a message belongs to.
+//
+// The omlox™ specification has the hub echo the subscription_id that generated
+// the data on every message, and that is the only unambiguous way to route a
+// message when the same topic is subscribed more than once with different
+// parameters. Some hubs (Deephub) only return the subscription_id on the
+// subscribed confirmation and omit it from subsequent messages, which decodes
+// to the zero value here. For those, fall back to matching on the topic.
+func (c *Client) resolveSubscriptions(msg *WrapperObject) []*Subcription {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	if sub := c.subs[msg.SubscriptionID]; sub != nil {
+		return []*Subcription{sub}
+	}
+
+	if msg.Topic == "" {
+		return nil
+	}
+
+	var subs []*Subcription
+	for _, sub := range c.subs {
+		if sub.topic == msg.Topic {
+			subs = append(subs, sub)
+		}
+	}
+
+	return subs
 }
 
 // drainPending clears any stale pending subscription from the channel,
@@ -677,10 +690,7 @@ func (c *Client) drainPending() {
 	select {
 	case stale := <-c.pending:
 		select {
-		case stale <- struct {
-			sid int
-			err error
-		}{err: net.ErrClosed}:
+		case stale.await <- subscribeResult{err: net.ErrClosed}:
 		default:
 		}
 	default:
@@ -703,19 +713,13 @@ func (c *Client) clearSubs() {
 	select {
 	case stale := <-c.pending:
 		select {
-		case stale <- struct {
-			sid int
-			err error
-		}{err: net.ErrClosed}:
+		case stale.await <- subscribeResult{err: net.ErrClosed}:
 		default:
 		}
 	default:
 	}
 
-	c.pending = make(chan chan struct {
-		sid int
-		err error
-	}, 1)
+	c.pending = make(chan pendingSubscription, 1)
 }
 
 // Close releases any resources held by the client,

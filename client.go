@@ -49,10 +49,25 @@ type Client struct {
 
 	// pending subscription awaiting for subscription ID from the server
 	// can only be one subscription per client awaiting for subscription.
-	pending chan chan struct {
-		sid int
-		err error
-	}
+	pending chan pendingSubscription
+}
+
+// subscribeResult is the outcome of a subscription handshake, handed back to
+// the caller waiting on it by the goroutine reading from the connection.
+type subscribeResult struct {
+	sid int
+	err error
+}
+
+// pendingSubscription is a subscription whose handshake is in flight.
+//
+// The subscription travels with the handshake so that the `subscribed`
+// confirmation can register it before any message is routed. Registering it on
+// the calling side instead would race with the messages the hub starts pushing
+// the moment it confirms the subscription.
+type pendingSubscription struct {
+	sub   *Subcription
+	await chan subscribeResult
 }
 
 // New returns a new client decorated with the given configuration options
@@ -85,12 +100,9 @@ func newClient(addr string, configuration ClientConfiguration) (*Client, error) 
 
 		baseAddress: address,
 
-		closed: true,
-		pending: make(chan chan struct {
-			sid int
-			err error
-		}, 1),
-		subs: make(map[int]*Subcription),
+		closed:  true,
+		pending: make(chan pendingSubscription, 1),
+		subs:    make(map[int]*Subcription),
 	}
 
 	c.Trackables = TrackablesAPI{
