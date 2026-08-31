@@ -5,9 +5,13 @@ package omlox
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -40,6 +44,15 @@ func DefaultWSRetryPolicy(ctx context.Context, attemptNum int, err error) (bool,
 
 	if websocket.CloseStatus(err) == websocket.StatusNormalClosure ||
 		websocket.CloseStatus(err) == websocket.StatusGoingAway {
+		return false, err
+	}
+
+	// A certificate the client will not accept is a configuration problem, not
+	// a transient one. Retrying only delays an error that cannot change, and
+	// buries the cause under a run of failed attempts; WithRootCAFile or
+	// WithInsecureSkipVerify is what resolves it.
+	var certErr *tls.CertificateVerificationError
+	if errors.As(err, &certErr) {
 		return false, err
 	}
 
@@ -249,6 +262,115 @@ func WithConnectionPoolSettings(maxIdleConns, maxIdleConnsPerHost, maxConnsPerHo
 		transport.MaxIdleConns = maxIdleConns
 		transport.MaxIdleConnsPerHost = maxIdleConnsPerHost
 		transport.MaxConnsPerHost = maxConnsPerHost
+
+		return nil
+	}
+}
+
+// transport returns the *http.Transport the configured client uses, so TLS
+// settings can be applied to it. It creates the default pooled client when
+// none was configured yet.
+//
+// A client whose transport is a wrapper type (a retrying or instrumenting
+// RoundTripper, say) cannot be reached this way. Configure TLS on the inner
+// *http.Client before wrapping it and pass the wrapper with WithHTTPClient.
+func (c *ClientConfiguration) transport() (*http.Transport, error) {
+	if c.HTTPClient == nil {
+		c.HTTPClient = cleanhttp.DefaultPooledClient()
+	}
+
+	transport, ok := c.HTTPClient.Transport.(*http.Transport)
+	if !ok {
+		return nil, fmt.Errorf("HTTPClient transport must be *http.Transport to configure TLS")
+	}
+
+	if transport.TLSClientConfig == nil {
+		transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+
+	return transport, nil
+}
+
+// WithTLSConfig sets the TLS configuration used for both the HTTPS API calls
+// and the WSS websockets connection, which share the client's transport.
+//
+// Because it configures the transport of the client set at the time it runs,
+// it must be passed after WithHTTPClient.
+func WithTLSConfig(config *tls.Config) ClientOption {
+	return func(c *ClientConfiguration) error {
+		if config == nil {
+			return fmt.Errorf("tls config must not be nil")
+		}
+
+		transport, err := c.transport()
+		if err != nil {
+			return err
+		}
+
+		transport.TLSClientConfig = config
+
+		return nil
+	}
+}
+
+// WithInsecureSkipVerify disables verification of the hub's TLS certificate
+// for both HTTPS and WSS.
+//
+// This is for reaching a hub that serves a self-signed or otherwise
+// unverifiable certificate — a development or staging deployment behind a
+// reverse proxy with no CA-issued certificate. It disables the protection
+// against an impersonated hub, so prefer WithRootCAFile, which keeps
+// verification on, wherever the CA certificate can be obtained.
+//
+// Because it configures the transport of the client set at the time it runs,
+// it must be passed after WithHTTPClient.
+func WithInsecureSkipVerify(skip bool) ClientOption {
+	return func(c *ClientConfiguration) error {
+		transport, err := c.transport()
+		if err != nil {
+			return err
+		}
+
+		transport.TLSClientConfig.InsecureSkipVerify = skip
+
+		return nil
+	}
+}
+
+// WithRootCAFile trusts the PEM-encoded CA certificates in the given file when
+// verifying the hub's certificate, in addition to the system roots.
+//
+// This is the verifying counterpart to WithInsecureSkipVerify: use it to reach
+// a hub whose certificate is signed by a private CA.
+//
+// Because it configures the transport of the client set at the time it runs,
+// it must be passed after WithHTTPClient.
+func WithRootCAFile(path string) ClientOption {
+	return func(c *ClientConfiguration) error {
+		pem, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("could not read CA certificate file: %w", err)
+		}
+
+		transport, err := c.transport()
+		if err != nil {
+			return err
+		}
+
+		pool := transport.TLSClientConfig.RootCAs
+		if pool == nil {
+			// start from the system roots so trusting a private CA adds to,
+			// rather than replaces, the publicly trusted ones
+			if pool, err = x509.SystemCertPool(); err != nil || pool == nil {
+				pool = x509.NewCertPool()
+			}
+		}
+
+		if !pool.AppendCertsFromPEM(pem) {
+			return fmt.Errorf("no PEM certificate found in %s", path)
+		}
+
+		transport.TLSClientConfig.RootCAs = pool
 
 		return nil
 	}
