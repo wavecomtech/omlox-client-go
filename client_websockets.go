@@ -70,7 +70,6 @@ func Connect(ctx context.Context, addr string, options ...ClientOption) (*Client
 // Connect dials the Omlox™ Hub websockets interface with automatic retry support.
 func (c *Client) Connect(ctx context.Context) error {
 	var err error
-	var shouldRetry bool
 	var attempt int
 
 	if c.configuration.WSAutoReconnect {
@@ -85,7 +84,14 @@ func (c *Client) Connect(ctx context.Context) error {
 			return nil
 		}
 
-		shouldRetry, err = c.configuration.WSCheckRetry(ctx, attempt, err)
+		// The policy may substitute its own error — the context's, say — but
+		// when it declines to, the dial error is the one the caller needs:
+		// keep it rather than letting a nil overwrite it, or an exhausted
+		// retry reports a failure with no cause at all.
+		shouldRetry, policyErr := c.configuration.WSCheckRetry(ctx, attempt, err)
+		if policyErr != nil {
+			err = policyErr
+		}
 		if !shouldRetry {
 			break
 		}
@@ -476,7 +482,6 @@ func (c *Client) readLoop(ctx context.Context, conn *websocket.Conn) error {
 // reconnect attempts to re-establish the WebSocket connection with retry logic.
 func (c *Client) reconnect(ctx context.Context) error {
 	var err error
-	var shouldRetry bool
 	var attempt int
 
 	for attempt = 0; ; attempt++ {
@@ -486,7 +491,14 @@ func (c *Client) reconnect(ctx context.Context) error {
 			return c.restoreSubscriptions(ctx)
 		}
 
-		shouldRetry, err = c.configuration.WSCheckRetry(ctx, attempt, err)
+		// The policy may substitute its own error — the context's, say — but
+		// when it declines to, the dial error is the one the caller needs:
+		// keep it rather than letting a nil overwrite it, or an exhausted
+		// retry reports a failure with no cause at all.
+		shouldRetry, policyErr := c.configuration.WSCheckRetry(ctx, attempt, err)
+		if policyErr != nil {
+			err = policyErr
+		}
 		if !shouldRetry {
 			break
 		}
@@ -615,9 +627,22 @@ func (c *Client) handleMessage(ctx context.Context, msg *wrapperObject) {
 func (c *Client) handleError(ctx context.Context, msg *wrapperObject) {
 	switch msg.WebsocketError.Code {
 	case ErrCodeSubscription, ErrCodeNotAuthorized, ErrCodeUnknownTopic, ErrCodeInvalid:
-		// pop pending subscription and kill it
-		pending := <-c.pending
-		chsend(ctx, pending.await, subscribeResult{err: msg.WebsocketError})
+		// These codes reach us either as the failure of a subscribe still in
+		// flight or as the hub rejecting a message we published. Only the
+		// former has anyone waiting, so the pop must not block: a client that
+		// merely publishes never has a pending subscription, and blocking here
+		// would wedge the read loop — and with it Close() — forever.
+		select {
+		case pending := <-c.pending:
+			chsend(ctx, pending.await, subscribeResult{err: msg.WebsocketError})
+		default:
+			slog.LogAttrs(
+				ctx,
+				slog.LevelWarn,
+				"hub reported an error with no subscription pending",
+				slog.Any("error", msg.WebsocketError),
+			)
+		}
 		return
 	case ErrCodeUnknown: // TODO @dvcorreia: handle error
 	case ErrCodeUnsubscription: // TODO @dvcorreia: handle error
