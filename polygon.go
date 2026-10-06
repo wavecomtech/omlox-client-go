@@ -5,7 +5,6 @@ package omlox
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/tidwall/geojson"
 	"github.com/tidwall/geojson/geometry"
@@ -46,9 +45,9 @@ func (p Polygon) Equal(u Polygon) bool {
 		return false
 	}
 
-	if strings.Compare(p.JSON(), u.JSON()) != 0 {
+	if p.Rect() != u.Rect() {
 		return false
 	}
 
-	return true
+	return p.WithinPoly(u.Base()) && u.WithinPoly(p.Base())
 }

@@ -55,3 +55,93 @@ func TestPolygonUnmarshal(t *testing.T) {
 	}
 
 }
+
+var polygonEqualTestCases = []struct {
+	name     string
+	p        *Polygon
+	u        *Polygon
+	expected bool
+}{
+	{
+		name: "identical-polygons",
+		p: NewPolygon(geometry.NewPoly([]geometry.Point{
+			{X: 0.0, Y: 0.0},
+			{X: 1.0, Y: 0.0},
+			{X: 1.0, Y: 1.0},
+			{X: 0.0, Y: 1.0},
+			{X: 0.0, Y: 0.0},
+		}, nil, geometry.DefaultIndexOptions)),
+		u: NewPolygon(geometry.NewPoly([]geometry.Point{
+			{X: 0.0, Y: 0.0},
+			{X: 1.0, Y: 0.0},
+			{X: 1.0, Y: 1.0},
+			{X: 0.0, Y: 1.0},
+			{X: 0.0, Y: 0.0},
+		}, nil, geometry.DefaultIndexOptions)),
+		expected: true,
+	},
+	{
+		name: "identical-polygons-rotated",
+		p: NewPolygon(geometry.NewPoly([]geometry.Point{
+			{X: 0.0, Y: 0.0},
+			{X: 1.0, Y: 0.0},
+			{X: 1.0, Y: 1.0},
+			{X: 0.0, Y: 1.0},
+			{X: 0.0, Y: 0.0},
+		}, nil, geometry.DefaultIndexOptions)),
+		u: NewPolygon(geometry.NewPoly([]geometry.Point{
+			{X: 1.0, Y: 0.0},
+			{X: 1.0, Y: 1.0},
+			{X: 0.0, Y: 1.0},
+			{X: 0.0, Y: 0.0},
+			{X: 1.0, Y: 0.0},
+		}, nil, geometry.DefaultIndexOptions)),
+		expected: true,
+	},
+	{
+		name: "different-polygons",
+		p: NewPolygon(geometry.NewPoly([]geometry.Point{
+			{X: 0.0, Y: 0.0},
+			{X: 1.0, Y: 0.0},
+			{X: 1.0, Y: 1.0},
+			{X: 0.0, Y: 1.0},
+			{X: 0.0, Y: 0.0},
+		}, nil, geometry.DefaultIndexOptions)),
+		u: NewPolygon(geometry.NewPoly([]geometry.Point{
+			{X: 1.0, Y: 1.0},
+			{X: 2.0, Y: 1.0},
+			{X: 2.0, Y: 2.0},
+			{X: 1.0, Y: 2.0},
+			{X: 1.0, Y: 1.0},
+		}, nil, geometry.DefaultIndexOptions)),
+		expected: false,
+	},
+	{
+		name: "polygon-within-polygon",
+		p: NewPolygon(geometry.NewPoly([]geometry.Point{
+			{X: 0.0, Y: 0.0},
+			{X: 1.0, Y: 0.0},
+			{X: 1.0, Y: 1.0},
+			{X: 0.0, Y: 1.0},
+			{X: 0.0, Y: 0.0},
+		}, nil, geometry.DefaultIndexOptions)),
+		u: NewPolygon(geometry.NewPoly([]geometry.Point{
+			{X: -1.0, Y: -1.0},
+			{X: 2.0, Y: -1.0},
+			{X: 2.0, Y: 2.0},
+			{X: -1.0, Y: 2.0},
+			{X: -1.0, Y: -1.0},
+		}, nil, geometry.DefaultIndexOptions)),
+		expected: false,
+	},
+}
+
+func TestPolygonEqual(t *testing.T) {
+	for _, tc := range polygonEqualTestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if result := tc.p.Equal(*tc.u); result != tc.expected {
+				t.Errorf("Equal() mismatch want: %v, got: %v", tc.expected, result)
+			}
+		})
+	}
+}

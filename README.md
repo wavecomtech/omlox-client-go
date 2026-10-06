@@ -193,7 +193,7 @@ Following is the current checklist of the implemented schemas and API methods.
 | Collision                     |                |
 | CollisionEvent                |                |
 | Error                         |       ✅       |
-| Fence                         |                |
+| Fence                         |       ✅       |
 | FenceEvent                    |                |
 | LineString                    |                |
 | LocatingRule                  |                |
@@ -264,7 +264,7 @@ Following is the current checklist of the implemented schemas and API methods.
 
 | Method | Endpoint                     | Implemented |
 | ------ | ---------------------------- | :---------: |
-| GET    | `/fences/summary`            |             |
+| GET    | `/fences/summary`            |     ✅      |
 | GET    | `/fences`                    |             |
 | POST   | `/fences`                    |             |
 | DELETE | `/fences`                    |             |

@@ -6,24 +6,11 @@ package omlox
 import (
 	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/tidwall/geojson"
 	"github.com/tidwall/geojson/geometry"
 )
-
-func mustParseTime(s string) *time.Time {
-	t, err := time.Parse(time.RFC3339Nano, s)
-	if err != nil {
-		panic(err)
-	}
-	return &t
-}
-
-func opt[T any](v T) *T {
-	return &v
-}
 
 var locationJSONTestCases = []struct {
 	name     string

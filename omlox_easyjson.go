@@ -972,3 +972,195 @@ func (v *Location) UnmarshalJSON(data []byte) error {
 func (v *Location) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo5(l, v)
 }
+func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo6(in *jlexer.Lexer, out *Fence) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "id":
+			if data := in.UnsafeBytes(); in.Ok() {
+				in.AddError((out.ID).UnmarshalText(data))
+			}
+		case "region":
+			if in.IsNull() {
+				in.Skip()
+				out.Region = nil
+			} else {
+				if out.Region == nil {
+					out.Region = new(Region)
+				}
+				if data := in.Raw(); in.Ok() {
+					in.AddError((*out.Region).UnmarshalJSON(data))
+				}
+			}
+		case "radius":
+			out.Radius = float64(in.Float64())
+		case "extrusion":
+			out.Extrusion = float64(in.Float64())
+		case "floor":
+			out.Floor = float64(in.Float64())
+		case "foreign_id":
+			out.ForeignID = string(in.String())
+		case "name":
+			out.Name = string(in.String())
+		case "timeout":
+			(out.Timeout).UnmarshalEasyJSON(in)
+		case "exit_tolerance":
+			out.ExitTolerance = float64(in.Float64())
+		case "tolerance_timeout":
+			(out.ToleranceTimeout).UnmarshalEasyJSON(in)
+		case "exit_delay":
+			(out.ExitDelay).UnmarshalEasyJSON(in)
+		case "crs":
+			out.Crs = string(in.String())
+		case "zone_id":
+			out.ZoneID = string(in.String())
+		case "elevation_ref":
+			if in.IsNull() {
+				in.Skip()
+				out.ElevationRef = nil
+			} else {
+				if out.ElevationRef == nil {
+					out.ElevationRef = new(ElevationRefType)
+				}
+				if data := in.Raw(); in.Ok() {
+					in.AddError((*out.ElevationRef).UnmarshalJSON(data))
+				}
+			}
+		case "properties":
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Properties).UnmarshalJSON(data))
+			}
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo6(out *jwriter.Writer, in Fence) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"id\":"
+		out.RawString(prefix[1:])
+		out.RawText((in.ID).MarshalText())
+	}
+	{
+		const prefix string = ",\"region\":"
+		out.RawString(prefix)
+		if in.Region == nil {
+			out.RawString("null")
+		} else {
+			out.Raw((*in.Region).MarshalJSON())
+		}
+	}
+	if in.Radius != 0 {
+		const prefix string = ",\"radius\":"
+		out.RawString(prefix)
+		out.Float64(float64(in.Radius))
+	}
+	if in.Extrusion != 0 {
+		const prefix string = ",\"extrusion\":"
+		out.RawString(prefix)
+		out.Float64(float64(in.Extrusion))
+	}
+	if in.Floor != 0 {
+		const prefix string = ",\"floor\":"
+		out.RawString(prefix)
+		out.Float64(float64(in.Floor))
+	}
+	if in.ForeignID != "" {
+		const prefix string = ",\"foreign_id\":"
+		out.RawString(prefix)
+		out.String(string(in.ForeignID))
+	}
+	if in.Name != "" {
+		const prefix string = ",\"name\":"
+		out.RawString(prefix)
+		out.String(string(in.Name))
+	}
+	if (in.Timeout).IsDefined() {
+		const prefix string = ",\"timeout\":"
+		out.RawString(prefix)
+		(in.Timeout).MarshalEasyJSON(out)
+	}
+	if in.ExitTolerance != 0 {
+		const prefix string = ",\"exit_tolerance\":"
+		out.RawString(prefix)
+		out.Float64(float64(in.ExitTolerance))
+	}
+	if (in.ToleranceTimeout).IsDefined() {
+		const prefix string = ",\"tolerance_timeout\":"
+		out.RawString(prefix)
+		(in.ToleranceTimeout).MarshalEasyJSON(out)
+	}
+	if (in.ExitDelay).IsDefined() {
+		const prefix string = ",\"exit_delay\":"
+		out.RawString(prefix)
+		(in.ExitDelay).MarshalEasyJSON(out)
+	}
+	if in.Crs != "" {
+		const prefix string = ",\"crs\":"
+		out.RawString(prefix)
+		out.String(string(in.Crs))
+	}
+	if in.ZoneID != "" {
+		const prefix string = ",\"zone_id\":"
+		out.RawString(prefix)
+		out.String(string(in.ZoneID))
+	}
+	if in.ElevationRef != nil {
+		const prefix string = ",\"elevation_ref\":"
+		out.RawString(prefix)
+		out.Raw((*in.ElevationRef).MarshalJSON())
+	}
+	if len(in.Properties) != 0 {
+		const prefix string = ",\"properties\":"
+		out.RawString(prefix)
+		out.Raw((in.Properties).MarshalJSON())
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v Fence) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo6(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v Fence) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo6(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *Fence) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo6(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *Fence) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo6(l, v)
+}

@@ -21,25 +21,18 @@ jobs:
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
-      - name: Set up go
-        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-        with:
-          go-version: 1.21
-      
-      - name: Install gen dependencies
-        run: |
-          go install github.com/mailru/easyjson/...@latest
-          go install github.com/hashicorp/copywrite@latest
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
 
-      - name: Ensure the code has been properly regenerated with 'go generate ./...'
+      - name: Ensure the code has been properly regenerated with 'nix develop -c go generate ./...'
         run: |
-          go generate ./...
-          readonly changed_files="$(git diff --stat)"
+          nix develop -c go generate ./...
+          readonly changed_files="$(git status --porcelain)"
           if [[ "${changed_files}" != "" ]]; then
-          echo "Found differences after running 'go generate ./...'"
-          echo "Please run 'go generate ./...' & commit the changed files:"
-          echo "${changed_files}"
-          exit 1
+            echo "Found differences after running 'nix develop -c go generate ./...'"
+            echo "Please run 'nix develop -c go generate ./...' & commit the changed files:"
+            echo "${changed_files}"
+            exit 1
           fi
 
   tests:
@@ -47,15 +40,13 @@ jobs:
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
-      - name: Set up go
-        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-        with:
-          go-version: 1.21
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
 
       - name: Build
-        run: go build -v ./...
+        run: nix develop -c go build -v ./...
 
       - name: Test
-        run: go test -v ./...
+        run: nix develop -c go test -v ./...
 
   # TODO @dvcorreia: add linting workflow

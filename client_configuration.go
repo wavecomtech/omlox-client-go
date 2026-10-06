@@ -245,6 +245,33 @@ func WithWSCheckRetry(checkRetry WSCheckRetry) ClientOption {
 	}
 }
 
+// WithReconnect enables automatic websocket reconnection with exponential
+// backoff, retrying without limit and waiting between minWait and maxWait.
+//
+// It is equivalent to WithWSAutoReconnect(true), WithWSMaxRetries(-1) and
+// WithWSRetryWait(minWait, maxWait).
+//
+// Deprecated: use WithWSAutoReconnect, WithWSMaxRetries and WithWSRetryWait,
+// which also allow a bounded number of attempts.
+func WithReconnect(minWait, maxWait time.Duration) ClientOption {
+	return func(c *ClientConfiguration) error {
+		if minWait <= 0 {
+			return fmt.Errorf("minWait must be positive")
+		}
+		if maxWait <= 0 {
+			return fmt.Errorf("maxWait must be positive")
+		}
+		if minWait > maxWait {
+			return fmt.Errorf("minWait must not exceed maxWait")
+		}
+		c.WSAutoReconnect = true
+		c.WSMaxRetries = -1
+		c.WSMinRetryWait = minWait
+		c.WSMaxRetryWait = maxWait
+		return nil
+	}
+}
+
 // WithConnectionPoolSettings configures HTTP connection pool settings for better
 // performance under high load. This adjusts MaxIdleConns, MaxIdleConnsPerHost,
 // and MaxConnsPerHost on the transport.

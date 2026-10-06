@@ -18,6 +18,7 @@ func newGetCmd(settings cli.EnvSettings, out io.Writer) *cobra.Command {
 
 	cmd.AddCommand(newGetTrackablesCmd(settings, out))
 	cmd.AddCommand(newGetProvidersCmd(settings, out))
+	cmd.AddCommand(newGetFencesCmd(settings, out))
 
 	return cmd
 }

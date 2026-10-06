@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/nsf/jsondiff"
@@ -45,4 +46,16 @@ func JSONUnmarshalOK[T any](t *testing.T, input []byte, expected T) {
 	if diff := cmp.Diff(expected, o); diff != "" {
 		t.Errorf("%s mismatch (-want +got):\n%s", tp.String(), diff)
 	}
+}
+
+func mustParseTime(s string) *time.Time {
+	t, err := time.Parse(time.RFC3339Nano, s)
+	if err != nil {
+		panic(err)
+	}
+	return &t
+}
+
+func opt[T any](v T) *T {
+	return &v
 }

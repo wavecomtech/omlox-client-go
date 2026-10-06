@@ -54,3 +54,20 @@ func ExampleConnect() {
 		_ = location // handle location update
 	}
 }
+
+func ExampleWithReconnect() {
+	// Dials a Omlox Hub websocket interface with reconnect option
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	client, err := omlox.Connect(
+		ctx,
+		"localhost:7081/v2",
+		omlox.WithReconnect(time.Second, 30*time.Second),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Close()
+}
