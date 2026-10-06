@@ -17,7 +17,6 @@ It specifies open interfaces for an interoperable localization system that enabl
    - [Getting Started](#getting-started)
    - [Websockets](#websockets)
      - [Subscription](#subscription)
-     - [Reconnection](#reconnection)
    - [Error Handling](#error-handling)
 1. [Status](#status)
    - [Schemas](#schemas)
@@ -97,14 +96,14 @@ for location := range omlox.ReceiveAs[omlox.Location](sub) {
 }
 ```
 
-#### Reconnection
+#### Auto-Reconnection
 
-The client supports automatic WebSocket reconnection with exponential backoff with full jitter.
+The client supports automatic WebSocket reconnection with configurable retry policies. This is essential for production deployments where connections may be disrupted due to network issues, server restarts, or high load.
 
 ```go
-// Create client with websocket reconnection
-// Dials a Omlox Hub websocket interface, subscribes
-// to the location_updates topic and listens to new
+// Create client with auto-reconnection enabled, unlimited retries, and backoff timing
+// Dials a Omlox Hub websocket interface, subscribes to
+// the location_updates topic and listens to new
 // location messages.
 
 ctx, cancel := context.WithCancel(context.Background())
@@ -113,12 +112,33 @@ defer cancel()
 client, err := omlox.Connect(
     ctx,
     "localhost:7081/v2",
-    omlox.WithReconnect(time.Second, 30*time.Second),
+    omlox.WithWSAutoReconnect(true),
+    omlox.WithWSMaxRetries(-1),
+    omlox.WithWSRetryWait(time.Second, 30*time.Second),
 )
 if err != nil {
     log.Fatal(err)
 }
 defer client.Close()
+
+sub, err := client.Subscribe(ctx, omlox.TopicLocationUpdates)
+if err != nil {
+    log.Fatal(err)
+}
+
+for location := range omlox.ReceiveAs[omlox.Location](sub) {
+    _ = location // handle location update
+}
+```
+
+For high-load scenarios, also configure the HTTP connection pool:
+
+```go
+client, err := omlox.New(
+    "https://localhost:7081/v2",
+    omlox.WithWSAutoReconnect(true),
+    omlox.WithConnectionPoolSettings(200, 100, 0),  // Prevent pool exhaustion
+)
 ```
 
 ### Error Handling
