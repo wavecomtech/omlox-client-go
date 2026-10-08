@@ -177,7 +177,7 @@ Following is the current checklist of the implemented schemas and API methods.
 | FenceEvent                    |                |
 | LineString                    |                |
 | LocatingRule                  |                |
-| Location                      |                |
+| Location                      |       ✅       |
 | LocationProvider              |       ✅       |
 | Point                         |       ✅       |
 | Polygon                       |       ✅       |
