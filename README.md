@@ -183,7 +183,7 @@ Following is the current checklist of the implemented schemas and API methods.
 | Polygon                       |       ✅       |
 | Proximity                     |                |
 | Trackable                     |       ✅       |
-| TrackableMotion               |                |
+| TrackableMotion               |       ✅       |
 | WebsocketError                |       ✅       |
 | WebsocketMessage              | API abstracted |
 | WebSocketSubscriptionResponse | API abstracted |
