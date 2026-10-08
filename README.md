@@ -177,13 +177,13 @@ Following is the current checklist of the implemented schemas and API methods.
 | FenceEvent                    |                |
 | LineString                    |                |
 | LocatingRule                  |                |
-| Location                      |                |
+| Location                      |       ✅       |
 | LocationProvider              |       ✅       |
 | Point                         |       ✅       |
 | Polygon                       |       ✅       |
 | Proximity                     |                |
 | Trackable                     |       ✅       |
-| TrackableMotion               |                |
+| TrackableMotion               |       ✅       |
 | WebsocketError                |       ✅       |
 | WebsocketMessage              | API abstracted |
 | WebSocketSubscriptionResponse | API abstracted |
