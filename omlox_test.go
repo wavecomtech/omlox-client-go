@@ -33,7 +33,13 @@ func ExampleConnect() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	client, err := omlox.Connect(ctx, "localhost:7081/v2")
+	client, err := omlox.Connect(
+		ctx,
+		"localhost:7081/v2",
+		omlox.WithWSAutoReconnect(true),
+		omlox.WithWSMaxRetries(-1), // Unlimited retries
+		omlox.WithWSRetryWait(time.Second, 30*time.Second), // Backoff timing
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
