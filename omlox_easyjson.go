@@ -258,7 +258,122 @@ func (v *WebsocketError) UnmarshalJSON(data []byte) error {
 func (v *WebsocketError) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo1(l, v)
 }
-func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo2(in *jlexer.Lexer, out *Trackable) {
+func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo2(in *jlexer.Lexer, out *TrackableMotion) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "id":
+			if data := in.UnsafeBytes(); in.Ok() {
+				in.AddError((out.ID).UnmarshalText(data))
+			}
+		case "name":
+			out.Name = string(in.String())
+		case "geometry":
+			if in.IsNull() {
+				in.Skip()
+				out.Geometry = nil
+			} else {
+				if out.Geometry == nil {
+					out.Geometry = new(Polygon)
+				}
+				if data := in.Raw(); in.Ok() {
+					in.AddError((*out.Geometry).UnmarshalJSON(data))
+				}
+			}
+		case "extrusion":
+			out.Extrusion = float64(in.Float64())
+		case "location":
+			(out.Location).UnmarshalEasyJSON(in)
+		case "properties":
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Properties).UnmarshalJSON(data))
+			}
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo2(out *jwriter.Writer, in TrackableMotion) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"id\":"
+		out.RawString(prefix[1:])
+		out.RawText((in.ID).MarshalText())
+	}
+	if in.Name != "" {
+		const prefix string = ",\"name\":"
+		out.RawString(prefix)
+		out.String(string(in.Name))
+	}
+	if in.Geometry != nil {
+		const prefix string = ",\"geometry\":"
+		out.RawString(prefix)
+		out.Raw((*in.Geometry).MarshalJSON())
+	}
+	if in.Extrusion != 0 {
+		const prefix string = ",\"extrusion\":"
+		out.RawString(prefix)
+		out.Float64(float64(in.Extrusion))
+	}
+	{
+		const prefix string = ",\"location\":"
+		out.RawString(prefix)
+		(in.Location).MarshalEasyJSON(out)
+	}
+	if len(in.Properties) != 0 {
+		const prefix string = ",\"properties\":"
+		out.RawString(prefix)
+		out.Raw((in.Properties).MarshalJSON())
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v TrackableMotion) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo2(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v TrackableMotion) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo2(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *TrackableMotion) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo2(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *TrackableMotion) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo2(l, v)
+}
+func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo3(in *jlexer.Lexer, out *Trackable) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -355,7 +470,7 @@ func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo2(in *jlexer.Lexer, 
 				}
 				for !in.IsDelim(']') {
 					var v7 LocatingRule
-					easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo3(in, &v7)
+					easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo4(in, &v7)
 					out.LocatingRules = append(out.LocatingRules, v7)
 					in.WantComma()
 				}
@@ -371,7 +486,7 @@ func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo2(in *jlexer.Lexer, 
 		in.Consumed()
 	}
 }
-func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo2(out *jwriter.Writer, in Trackable) {
+func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo3(out *jwriter.Writer, in Trackable) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -453,7 +568,7 @@ func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo2(out *jwriter.Write
 				if v10 > 0 {
 					out.RawByte(',')
 				}
-				easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo3(out, v11)
+				easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo4(out, v11)
 			}
 			out.RawByte(']')
 		}
@@ -464,27 +579,27 @@ func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo2(out *jwriter.Write
 // MarshalJSON supports json.Marshaler interface
 func (v Trackable) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo2(&w, v)
+	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo3(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Trackable) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo2(w, v)
+	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo3(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *Trackable) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo2(&r, v)
+	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo3(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Trackable) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo2(l, v)
+	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo3(l, v)
 }
-func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo3(in *jlexer.Lexer, out *LocatingRule) {
+func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo4(in *jlexer.Lexer, out *LocatingRule) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -517,7 +632,7 @@ func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo3(in *jlexer.Lexer, 
 		in.Consumed()
 	}
 }
-func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo3(out *jwriter.Writer, in LocatingRule) {
+func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo4(out *jwriter.Writer, in LocatingRule) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -533,7 +648,7 @@ func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo3(out *jwriter.Write
 	}
 	out.RawByte('}')
 }
-func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo4(in *jlexer.Lexer, out *LocationProvider) {
+func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo5(in *jlexer.Lexer, out *LocationProvider) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -590,7 +705,7 @@ func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo4(in *jlexer.Lexer, 
 		in.Consumed()
 	}
 }
-func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo4(out *jwriter.Writer, in LocationProvider) {
+func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo5(out *jwriter.Writer, in LocationProvider) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -651,27 +766,27 @@ func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo4(out *jwriter.Write
 // MarshalJSON supports json.Marshaler interface
 func (v LocationProvider) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo4(&w, v)
+	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo5(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v LocationProvider) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo4(w, v)
+	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo5(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *LocationProvider) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo4(&r, v)
+	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo5(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *LocationProvider) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo4(l, v)
+	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo5(l, v)
 }
-func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo5(in *jlexer.Lexer, out *Location) {
+func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo6(in *jlexer.Lexer, out *Location) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -843,7 +958,7 @@ func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo5(in *jlexer.Lexer, 
 		in.Consumed()
 	}
 }
-func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo5(out *jwriter.Writer, in Location) {
+func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo6(out *jwriter.Writer, in Location) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -952,27 +1067,27 @@ func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo5(out *jwriter.Write
 // MarshalJSON supports json.Marshaler interface
 func (v Location) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo5(&w, v)
+	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo6(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Location) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo5(w, v)
+	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo6(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *Location) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo5(&r, v)
+	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo6(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Location) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo5(l, v)
+	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo6(l, v)
 }
-func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo6(in *jlexer.Lexer, out *Fence) {
+func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo7(in *jlexer.Lexer, out *Fence) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1055,7 +1170,7 @@ func easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo6(in *jlexer.Lexer, 
 		in.Consumed()
 	}
 }
-func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo6(out *jwriter.Writer, in Fence) {
+func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo7(out *jwriter.Writer, in Fence) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1144,23 +1259,23 @@ func easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo6(out *jwriter.Write
 // MarshalJSON supports json.Marshaler interface
 func (v Fence) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo6(&w, v)
+	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo7(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Fence) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo6(w, v)
+	easyjsonF70c4027EncodeGithubComWavecomtechOmloxClientGo7(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *Fence) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo6(&r, v)
+	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo7(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Fence) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo6(l, v)
+	easyjsonF70c4027DecodeGithubComWavecomtechOmloxClientGo7(l, v)
 }
