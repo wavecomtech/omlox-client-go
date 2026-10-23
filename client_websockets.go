@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/url"
@@ -156,6 +157,10 @@ func (c *Client) connect(ctx context.Context) error {
 	if err != nil {
 		cancel()
 		return err
+	}
+
+	if limit := c.configuration.WSReadLimit; limit != 0 {
+		conn.SetReadLimit(limit)
 	}
 
 	slog.LogAttrs(
@@ -461,22 +466,65 @@ func (c *Client) readLoop(ctx context.Context, conn *websocket.Conn) error {
 
 		// assumed that messages can only betext until further specification.
 		if msgType != websocket.MessageText {
+			if err := discardRest(r); err != nil {
+				return err
+			}
 			continue
 		}
 
 		var (
 			wrObj wrapperObject
-			d     = json.NewDecoder(r) // TODO @dvcorreia: maybe use easyjson
+			rr    = &recordingReader{r: r}
+			d     = json.NewDecoder(rr) // TODO @dvcorreia: maybe use easyjson
 		)
 		if err := d.Decode(&wrObj); err != nil {
-			// TODO @dvcorreia: print debug logs or provide metrics
+			// The connection failed while the message was being read, for
+			// example on a message over the read limit, which closes it.
+			// Return the cause, so the loss is handled and logged with it.
+			if rr.err != nil {
+				return rr.err
+			}
+
+			// The message itself is not valid JSON: drop it and keep reading.
+			slog.LogAttrs(ctx, slog.LevelWarn, "dropping a websocket message that is not valid JSON", slog.Any("error", err))
+			if err := discardRest(rr); err != nil {
+				return err
+			}
 			continue
+		}
+
+		// The decoder stops at the end of the JSON value, and the next
+		// message can only be read once this one has been read to its end.
+		if err := discardRest(rr); err != nil {
+			return err
 		}
 
 		slog.LogAttrs(context.Background(), slog.LevelDebug, "received", slog.Any("event", wrObj))
 
 		c.handleMessage(ctx, &wrObj)
 	}
+}
+
+// recordingReader keeps the first error, other than io.EOF, that reading the
+// message returned, which a JSON decoder would otherwise report only as a
+// decoding error.
+type recordingReader struct {
+	r   io.Reader
+	err error
+}
+
+func (rr *recordingReader) Read(p []byte) (int, error) {
+	n, err := rr.r.Read(p)
+	if err != nil && !errors.Is(err, io.EOF) && rr.err == nil {
+		rr.err = err
+	}
+	return n, err
+}
+
+// discardRest reads the rest of a message, so the next one can be read.
+func discardRest(r io.Reader) error {
+	_, err := io.Copy(io.Discard, r)
+	return err
 }
 
 // reconnect attempts to re-establish the WebSocket connection with retry logic.

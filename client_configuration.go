@@ -85,8 +85,18 @@ func DefaultConfiguration() ClientConfiguration {
 		WSMaxRetryWait: 30 * time.Second,
 		WSBackoff:      DefaultWSBackoff,
 		WSCheckRetry:   DefaultWSRetryPolicy,
+		WSReadLimit:    DefaultWSReadLimit,
 	}
 }
+
+// DefaultWSReadLimit is the default maximum size, in bytes, of a message read
+// from the WebSocket.
+//
+// The WebSocket library's own default, 32 KiB, is smaller than the messages
+// a busy hub sends: a trackable_motions message carries every motion of a
+// batch with its trackable, and reaches tens of kilobytes. A message over the
+// limit closes the connection.
+const DefaultWSReadLimit int64 = 1 << 20 // 1 MiB
 
 // / ClientConfiguration is used to configure the creation of the client.
 type ClientConfiguration struct {
@@ -142,6 +152,14 @@ type ClientConfiguration struct {
 	//
 	// Default: false (for backward compatibility, but recommended to enable)
 	WSAutoReconnect bool
+
+	// WSReadLimit sets the maximum size, in bytes, of a message read from the
+	// WebSocket. A larger message closes the connection, which is then handled
+	// as a lost connection. -1 disables the limit, and 0 keeps the WebSocket
+	// library's default of 32 KiB.
+	//
+	// Default: DefaultWSReadLimit (1 MiB)
+	WSReadLimit int64
 }
 
 // ClientOption is a configuration option to initialize a client.
@@ -221,6 +239,20 @@ func WithWSRetryWait(min, max time.Duration) ClientOption {
 		}
 		c.WSMinRetryWait = min
 		c.WSMaxRetryWait = max
+		return nil
+	}
+}
+
+// WithWSReadLimit sets the maximum size, in bytes, of a message read from the
+// WebSocket. Set to -1 to disable the limit.
+//
+// Default: DefaultWSReadLimit (1 MiB)
+func WithWSReadLimit(limit int64) ClientOption {
+	return func(c *ClientConfiguration) error {
+		if limit < -1 || limit == 0 {
+			return fmt.Errorf("read limit must be positive, or -1 for no limit")
+		}
+		c.WSReadLimit = limit
 		return nil
 	}
 }
